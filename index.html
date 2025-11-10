@@ -226,7 +226,7 @@
 
     // Full parameter state
     let state = {
-      cx: -0.5, cy: 0.0, scale: 0.004, maxIter: 500,
+      cx: -0.5, cy: 0.0, scale: 0.004, maxIter: 100,
       power: 2, escapeRadius: 2,
       z0r: 0, z0i: 0,
       isPanning:false, panStart:{x:0,y:0}, centerStart:{cx:-0.5, cy:0.0}
@@ -264,7 +264,7 @@
     }
 
     function resetMandel(){
-      state = { cx:-0.5, cy:0.0, scale:0.004, maxIter:500, power:2, escapeRadius:2, z0r:0, z0i:0,
+      state = { cx:-0.5, cy:0.0, scale:0.004, maxIter:100, power:2, escapeRadius:2, z0r:0, z0i:0,
                 isPanning:false, panStart:{x:0,y:0}, centerStart:{cx:-0.5, cy:0.0} };
       stateToUi();
       renderMandelCore();
