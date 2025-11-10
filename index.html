@@ -2,10 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>PyScript Example (Corrected)</title>
+  <title>PyScript with Matplotlib</title>
   
   <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
   <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+  <py-config>
+    packages = ["matplotlib", "numpy"]
+  </py-config>
 </head>
 <body>
   <h1>Running Python in the Browser!</h1>
@@ -20,9 +24,36 @@
     now = datetime.datetime.now()
     pretty_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    # The standard Python print() function will be
-    # automatically routed to the "python-output" div.
+    # This print() output goes to the 'python-output' div
     print(f"This line was written by Python at: {pretty_time}")
   </py-script>
+
+  <hr>
+
+  <h2>Python-Generated Plot</h2>
+  <div id="plot-output"></div>
+
+  <py-script output="plot-output">
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # Generate sample data
+    x = np.linspace(0, 2 * np.pi, 200)
+    y = np.sin(x)
+
+    # Create the plot
+    fig, ax = plt.subplots()
+    ax.plot(x, y)
+    ax.set_title("Sine Wave Plot (from Matplotlib)")
+    ax.set_xlabel("X-axis")
+    ax.set_ylabel("Y-axis")
+    ax.grid(True)
+
+    # The 'fig' object is the last expression,
+    # so PyScript automatically renders it
+    # in the element specified by the 'output' attribute.
+    fig
+  </py-script>
+
 </body>
 </html>
