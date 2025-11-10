@@ -2,10 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>PyScript with Matplotlib</title>
+  <title>PyScript & Plotly.js</title>
   
   <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
   <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
   <py-config>
     packages = ["matplotlib", "numpy"]
@@ -13,13 +15,18 @@
 </head>
 
 <body>
-  <h1>Running Python in the Browser!</h1>
+  <h1>Running Python & JavaScript!</h1>
   <p>This text is static HTML.</p>
   
   <div id="python-output"></div>
   <hr>
-  <h2>Python-Generated Plot</h2>
+  
+  <h2>Python-Generated Plot (Matplotlib)</h2>
   <div id="plot-output"></div>
+
+  <hr>
+  <h2>JavaScript-Generated Plot (Plotly.js)</h2>
+  <div id="js-plot-output"></div>
 
   <py-script>
     import datetime
@@ -33,21 +40,58 @@
     display(f"This line was written by Python at: {pretty_time}", target="python-output")
 
     # --- Script 2: Display Plot ---
-    # Generate sample data
     x = np.linspace(0, 2 * np.pi, 200)
     y = np.sin(x)
 
-    # Create the plot
     fig, ax = plt.subplots()
     ax.plot(x, y)
     ax.set_title("Sine Wave Plot (from Matplotlib)")
     ax.set_xlabel("X-axis")
     ax.set_ylabel("Y-axis")
     ax.grid(True)
-
-    # Explicitly display the figure in its target div
     display(fig, target="plot-output")
   </py-script>
+
+
+  <script>
+    // Generate sample data
+    const x_js = [];
+    const y_sin = [];
+    const y_cos = [];
+    for (let i = 0; i < 200; i++) {
+        let xVal = i * (2 * Math.PI) / 200;
+        x_js.push(xVal);
+        y_sin.push(Math.sin(xVal));
+        y_cos.push(Math.cos(xVal));
+    }
+
+    // Define data traces
+    const trace1 = {
+        x: x_js,
+        y: y_sin,
+        mode: 'lines',
+        name: 'sin(x)'
+    };
+
+    const trace2 = {
+        x: x_js,
+        y: y_cos,
+        mode: 'lines',
+        name: 'cos(x)'
+    };
+    
+    const data = [trace1, trace2];
+
+    // Define layout
+    const layout = {
+        title: 'Sine and Cosine Waves (from Plotly.js)',
+        xaxis: { title: 'X-axis' },
+        yaxis: { title: 'Y-axis' }
+    };
+
+    // Render the plot in the 'js-plot-output' div
+    Plotly.newPlot('js-plot-output', data, layout);
+  </script>
 
 </body>
 </html>
