@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>JS Example</title>
+  <meta charset="utf-8" />
+  <title>PyScript Example</title>
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 </head>
 <body>
-    <h1>JavaScript Calculation</h1>
-    <p>The result of 5 + 10 is: <span id="result"></span></p>
+  <h1>Running Python in the Browser!</h1>
+  <p>This text is static HTML.</p>
+  <div id="python-output"></div>
 
-    <script>
-        function addNumbers(a, b) {
-            return a + b;
-        }
+  <py-script>
+    import datetime
 
-        const result = addNumbers(5, 10);
+    # Get the current time
+    now = datetime.datetime.now()
+    pretty_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-        // This updates the HTML page
-        document.getElementById("result").textContent = result;
-    </script>
+    # Use pyscript.write to send output to an HTML element
+    pyscript.write("python-output", f"This line was written by Python at: {pretty_time}")
+  </py-script>
 </body>
 </html>
