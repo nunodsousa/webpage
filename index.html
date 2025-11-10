@@ -1,97 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>PyScript & Plotly.js</title>
-  
-  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
-  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
 
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 
-  <py-config>
-    packages = ["matplotlib", "numpy"]
-  </py-config>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <py-config>
+        packages = ["matplotlib", "numpy"]
+    </py-config>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        h1 {
+            color: #1a535c;
+        }
+        h2 {
+            color: #4ecdc4;
+            border-bottom: 2px solid #f7fff7;
+            padding-bottom: 5px;
+        }
+        /* Tab navigation */
+        .tab-nav {
+            overflow: hidden;
+            border-bottom: 2px solid #ccc;
+            background-color: #fff;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .tab-nav button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 20px;
+            font-size: 17px;
+            font-weight: 500;
+            transition: 0.3s;
+            color: #4e8098;
+        }
+        .tab-nav button:hover {
+            background-color: #f0f0f0;
+        }
+        /* Active tab link */
+        .tab-nav button.active {
+            background-color: #4ecdc4;
+            color: #fff;
+            border-bottom: 2px solid #1a535c;
+        }
+        /* Tab content */
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            border-radius: 0 0 8px 8px;
+        }
+        .plot-container {
+            width: 100%;
+            min-height: 450px;
+        }
+    </style>
 </head>
 
 <body>
-  <h1>Running Python & JavaScript!</h1>
-  <p>This text is static HTML.</p>
-  
-  <div id="python-output"></div>
-  <hr>
-  
-  <h2>Python-Generated Plot (Matplotlib)</h2>
-  <div id="plot-output"></div>
 
-  <hr>
-  <h2>JavaScript-Generated Plot (Plotly.js)</h2>
-  <div id="js-plot-output"></div>
+    <header>
+        <h1>Analytics Dashboard</h1>
+        <p>Demonstrating plotting in both JavaScript (Plotly.js) and Python (PyScript)</p>
+    </header>
 
-  <py-script>
-    import datetime
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from pyscript import display
+    <nav class="tab-nav">
+        <button id="defaultOpen" class="tab-link active" onclick="openTab(event, 'js-content')">
+            JavaScript Example (Plotly.js)
+        </button>
+        <button class="tab-link" onclick="openTab(event, 'python-content')">
+            Python Example (PyScript)
+        </button>
+    </nav>
 
-    # --- Script 1: Display Time ---
-    now = datetime.datetime.now()
-    pretty_time = now.strftime("%Y-%m-%d %H:%M:%S")
-    display(f"This line was written by Python at: {pretty_time}", target="python-output")
+    <main>
+        <div id="js-content" class="tab-content">
+            <h2>JavaScript-Generated Plot</h2>
+            <p>This plot is rendered using <strong>Plotly.js</strong>. It is fast, fully interactive, and runs natively in the browser.</p>
+            <div id="js-plot-output" class="plot-container"></div>
+        </div>
 
-    # --- Script 2: Display Plot ---
-    x = np.linspace(0, 2 * np.pi, 200)
-    y = np.sin(x)
+        <div id="python-content" class="tab-content">
+            <h2>Python-Generated Plot</h2>
+            <p>This plot is rendered using <strong>PyScript</strong>, which runs Python and Matplotlib directly in the browser. Note the initial load time as Python and its libraries are initialized.</p>
+            <div id="python-output-time"></div>
+            <br>
+            <div id="python-plot-output" class="plot-container"></div>
+        </div>
+    </main>
 
-    fig, ax = plt.subplots()
-    ax.plot(x, y)
-    ax.set_title("Sine Wave Plot (from Matplotlib)")
-    ax.set_xlabel("X-axis")
-    ax.set_ylabel("Y-axis")
-    ax.grid(True)
-    display(fig, target="plot-output")
-  </py-script>
+    <py-script>
+        import datetime
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from pyscript import display
 
+        # --- Script 1: Display Time ---
+        now = datetime.datetime.now()
+        pretty_time = now.strftime("%Y-%m-%d %H:%M:%S")
+        display(f"Python execution time: {pretty_time}", target="python-output-time")
 
-  <script>
-    // Generate sample data
-    const x_js = [];
-    const y_sin = [];
-    const y_cos = [];
-    for (let i = 0; i < 200; i++) {
-        let xVal = i * (2 * Math.PI) / 200;
-        x_js.push(xVal);
-        y_sin.push(Math.sin(xVal));
-        y_cos.push(Math.cos(xVal));
-    }
+        # --- Script 2: Display Plot ---
+        x = np.linspace(0, 2 * np.pi, 200)
+        y = np.sin(x)
 
-    // Define data traces
-    const trace1 = {
-        x: x_js,
-        y: y_sin,
-        mode: 'lines',
-        name: 'sin(x)'
-    };
+        fig, ax = plt.subplots()
+        ax.plot(x, y)
+        ax.set_title("Sine Wave (from Matplotlib)")
+        ax.set_xlabel("X-axis")
+        ax.set_ylabel("Y-axis")
+        ax.grid(True)
+        display(fig, target="python-plot-output")
+    </py-script>
 
-    const trace2 = {
-        x: x_js,
-        y: y_cos,
-        mode: 'lines',
-        name: 'cos(x)'
-    };
-    
-    const data = [trace1, trace2];
+    <script>
+        // --- Plotly.js Script ---
+        function drawPlotlyChart() {
+            const x_js = [];
+            const y_sin = [];
+            const y_cos = [];
+            for (let i = 0; i < 200; i++) {
+                let xVal = i * (2 * Math.PI) / 200;
+                x_js.push(xVal);
+                y_sin.push(Math.sin(xVal));
+                y_cos.push(Math.cos(xVal));
+            }
+            const trace1 = { x: x_js, y: y_sin, mode: 'lines', name: 'sin(x)' };
+            const trace2 = { x: x_js, y: y_cos, mode: 'lines', name: 'cos(x)' };
+            const data = [trace1, trace2];
+            const layout = {
+                title: 'Sine and Cosine Waves (from Plotly.js)',
+                xaxis: { title: 'X-axis' },
+                yaxis: { title: 'Y-axis' }
+            };
+            Plotly.newPlot('js-plot-output', data, layout, {responsive: true});
+        }
+        drawPlotlyChart(); // Draw the chart on page load
 
-    // Define layout
-    const layout = {
-        title: 'Sine and Cosine Waves (from Plotly.js)',
-        xaxis: { title: 'X-axis' },
-        yaxis: { title: 'Y-axis' }
-    };
+        // --- Tab-Switching Logic ---
+        function openTab(evt, tabName) {
+            // Get all elements with class="tab-content" and hide them
+            let tabcontent = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
 
-    // Render the plot in the 'js-plot-output' div
-    Plotly.newPlot('js-plot-output', data, layout);
-  </script>
+            // Get all elements with class="tab-link" and remove the "active" class
+            let tablinks = document.getElementsByClassName("tab-link");
+            for (let i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            // Show the current tab, and add an "active" class to the button
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        
+        // Show the default tab on page load
+        document.getElementById("defaultOpen").click();
+    </script>
 
 </body>
 </html>
