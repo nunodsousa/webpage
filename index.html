@@ -65,6 +65,8 @@
     .mandel-controls input{background:rgba(2,8,23,.4); color:var(--text); border:1px solid rgba(148,163,184,.25); border-radius:10px; padding:6px 8px; width:110px}
     .mandel-controls button{background:linear-gradient(180deg, rgba(34,211,238,.28), rgba(34,211,238,.12));
       border:1px solid rgba(34,211,238,.45); color:var(--text); font-weight:700; padding:8px 12px; border-radius:12px; cursor:pointer;}
+    .mandel-json{display:flex; gap:10px; margin-top:6px; align-items:center; flex-wrap:wrap}
+    .mandel-json textarea{width:100%; min-height:60px; background:rgba(2,8,23,.4); color:var(--text); border:1px solid rgba(148,163,184,.25); border-radius:10px; padding:8px}
     canvas{width:100%; height:420px; border-radius:14px; background:var(--card); border:1px solid rgba(148,163,184,.12)}
     .tab{display:block} /* single tab now */
 
@@ -130,7 +132,7 @@
       <section id="mandelbrot" class="tab" role="tabpanel" style="margin-top:18px">
         <div class="card">
           <h2>Mandelbrot Set (JavaScript)</h2>
-          <p class="lead">Scroll to zoom, drag to pan. Adjust iterations for detail vs speed.</p>
+          <p class="lead">Scroll to zoom, drag to pan. Set parameters manually, via JSON, URL, or API.</p>
           <div class="mandel-wrap">
             <div class="mandel-controls">
               <label>Center X <input id="cx" type="number" step="0.001" value="-0.5" /></label>
@@ -139,6 +141,11 @@
               <label>Iterations <input id="iter" type="number" min="10" max="3000" value="500" /></label>
               <button onclick="resetMandel()">Reset</button>
               <button onclick="renderMandel()">Render</button>
+            </div>
+            <div class="mandel-json">
+              <textarea id="params-json" placeholder='{"cx":-0.75,"cy":0.1,"scale":0.003,"maxIter":800}'></textarea>
+              <button onclick="applyJsonParams()">Apply JSON</button>
+              <button onclick="copyCurrentParams()">Copy Current Params</button>
             </div>
             <canvas id="mandel"></canvas>
             <div class="subtle">Tip: Use your mouse wheel to zoom at the cursor. Drag to pan.</div>
@@ -212,6 +219,19 @@
       centerStart: {cx: -0.5, cy: 0.0}
     };
 
+    // Public API: programmatic generation
+    function generateMandelbrot(newParams = {}){
+      // Allow both iter and maxIter keys
+      if ('iter' in newParams && !('maxIter' in newParams)) {
+        newParams.maxIter = newParams.iter;
+      }
+      Object.assign(state, newParams);
+      stateToUi();
+      renderMandelCore();
+    }
+    // Expose API globally
+    window.generateMandelbrot = generateMandelbrot;
+
     function uiToState(){
       state.cx = parseFloat(document.getElementById('cx').value);
       state.cy = parseFloat(document.getElementById('cy').value);
@@ -219,16 +239,16 @@
       state.maxIter = parseInt(document.getElementById('iter').value, 10);
     }
     function stateToUi(){
-      document.getElementById('cx').value = state.cx.toFixed(6);
-      document.getElementById('cy').value = state.cy.toFixed(6);
-      document.getElementById('scale').value = state.scale.toFixed(6);
-      document.getElementById('iter').value = state.maxIter;
+      document.getElementById('cx').value = isFinite(state.cx) ? state.cx.toFixed(6) : "-0.500000";
+      document.getElementById('cy').value = isFinite(state.cy) ? state.cy.toFixed(6) : "0.000000";
+      document.getElementById('scale').value = isFinite(state.scale) ? state.scale.toFixed(6) : "0.004000";
+      document.getElementById('iter').value = isFinite(state.maxIter) ? state.maxIter : 500;
     }
 
     function resetMandel(){
       state = { cx:-0.5, cy:0.0, scale:0.004, maxIter:500, isPanning:false, panStart:{x:0,y:0}, centerStart:{cx:-0.5, cy:0.0} };
       stateToUi();
-      renderMandel();
+      renderMandelCore();
     }
 
     function colorMap(t){
@@ -248,7 +268,12 @@
     }
 
     function renderMandel(){
+      // Manual trigger from buttons/inputs
       uiToState();
+      renderMandelCore();
+    }
+
+    function renderMandelCore(){
       fitCanvas();
       const w = mandelCanvas.width;
       const h = mandelCanvas.height;
@@ -294,6 +319,35 @@
       ctx.putImageData(img, 0, 0);
     }
 
+    // JSON controls
+    function applyJsonParams(){
+      const t = document.getElementById('params-json').value.trim();
+      if(!t) return;
+      try{
+        const obj = JSON.parse(t);
+        generateMandelbrot(obj);
+      }catch(e){
+        alert("Invalid JSON: " + e.message);
+      }
+    }
+    function copyCurrentParams(){
+      const obj = { cx: state.cx, cy: state.cy, scale: state.scale, maxIter: state.maxIter };
+      const text = JSON.stringify(obj);
+      navigator.clipboard?.writeText(text);
+      document.getElementById('params-json').value = text;
+    }
+
+    // URL query support: ?cx=...&cy=...&scale=...&iter=... (iter alias for maxIter)
+    function applyUrlParams(){
+      const q = new URLSearchParams(window.location.search);
+      const p = {};
+      if(q.has('cx')) p.cx = parseFloat(q.get('cx'));
+      if(q.has('cy')) p.cy = parseFloat(q.get('cy'));
+      if(q.has('scale')) p.scale = parseFloat(q.get('scale'));
+      if(q.has('iter')) p.maxIter = parseInt(q.get('iter'), 10);
+      if(Object.keys(p).length) generateMandelbrot(p);
+    }
+
     // Zoom with wheel (zoom at cursor)
     mandelCanvas.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -316,7 +370,7 @@
       state.cy = y0 - (my - mandelCanvas.height/2) * scalePerDevPxNew;
 
       stateToUi();
-      renderMandel();
+      renderMandelCore();
     }, { passive:false });
 
     // Pan with drag
@@ -334,17 +388,19 @@
       state.cx = state.centerStart.cx - dx * (state.scale / dpr);
       state.cy = state.centerStart.cy - dy * (state.scale / dpr);
       stateToUi();
-      renderMandel();
+      renderMandelCore();
     });
 
     // Resize handling
-    window.addEventListener('resize', () => renderMandel());
+    window.addEventListener('resize', () => renderMandelCore());
 
     // Initialize plots + Mandelbrot
     draw2D();
     draw3D();
     stateToUi();
-    renderMandel();
+    renderMandelCore();
+    applyUrlParams();
+
     // Re-render Mandelbrot when inputs change
     ['cx','cy','scale','iter'].forEach(id => {
       document.getElementById(id).addEventListener('change', renderMandel);
