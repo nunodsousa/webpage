@@ -68,7 +68,10 @@
     .mandel-json{display:flex; gap:10px; margin-top:6px; align-items:center; flex-wrap:wrap}
     .mandel-json textarea{width:100%; min-height:60px; background:rgba(2,8,23,.4); color:var(--text); border:1px solid rgba(148,163,184,.25); border-radius:10px; padding:8px}
     canvas{width:100%; height:420px; border-radius:14px; background:var(--card); border:1px solid rgba(148,163,184,.12)}
-    .tab{display:block} /* single tab now */
+
+    /* Tabs */
+    .tab{display:none}
+    .tab.active{display:block}
 
     @media (max-width: 1040px){ .grid{grid-template-columns:1fr} .sidebar{display:none} .content{padding:18px} }
   </style>
@@ -89,8 +92,8 @@
 
     <div class="side-group">
       <div class="side-title">Sections</div>
-      <a href="#" class="side-link" onclick="scrollToId('js-plots')">JavaScript Plots <span class="pill">2D + 3D</span></a>
-      <a href="#" class="side-link" onclick="scrollToId('mandelbrot')">Mandelbrot <span class="pill">GPU-free</span></a>
+      <a href="#" class="side-link" onclick="openTab('plots')">JavaScript Plots <span class="pill">2D + 3D</span></a>
+      <a href="#" class="side-link" onclick="openTab('mandel')">Mandelbrot <span class="pill">Multibrot</span></a>
     </div>
   </aside>
 
@@ -102,14 +105,15 @@
           <span style="font-weight:800;letter-spacing:.12em;color:#9bdff3">NUNO • DEMOS</span>
         </div>
         <nav class="menu" aria-label="Subpages">
-          <button class="active" disabled>JavaScript</button>
+          <button id="btn-plots" class="active" onclick="openTab('plots')" aria-controls="tab-plots" aria-selected="true">Plots</button>
+          <button id="btn-mandel" onclick="openTab('mandel')" aria-controls="tab-mandel" aria-selected="false">Mandelbrot</button>
         </nav>
       </div>
     </header>
 
     <main class="content">
-      <!-- JS Plots -->
-      <section id="js-plots" class="tab" role="tabpanel">
+      <!-- PLOTS TAB -->
+      <section id="tab-plots" class="tab active" role="tabpanel" aria-labelledby="btn-plots">
         <div class="card">
           <h2>JavaScript Examples (Plotly)</h2>
           <p class="lead">Interactive 2D and 3D plots rendered in the browser.</p>
@@ -128,10 +132,10 @@
         </div>
       </section>
 
-      <!-- Mandelbrot -->
-      <section id="mandelbrot" class="tab" role="tabpanel" style="margin-top:18px">
+      <!-- MANDELBROT TAB -->
+      <section id="tab-mandel" class="tab" role="tabpanel" aria-labelledby="btn-mandel">
         <div class="card">
-          <h2>Mandelbrot Set (JavaScript)</h2>
+          <h2>Mandelbrot / Multibrot (JavaScript)</h2>
           <p class="lead">Scroll to zoom, drag to pan. Set parameters manually, via JSON, URL, or API.</p>
           <div class="mandel-wrap">
             <div class="mandel-controls">
@@ -139,11 +143,15 @@
               <label>Center Y <input id="cy" type="number" step="0.001" value="0.0" /></label>
               <label>Scale <input id="scale" type="number" step="0.0001" value="0.004" /></label>
               <label>Iterations <input id="iter" type="number" min="10" max="3000" value="500" /></label>
+              <label>Power <input id="power" type="number" step="0.1" value="2" /></label>
+              <label>Escape R <input id="escape" type="number" step="0.1" value="2" /></label>
+              <label>z₀ real <input id="z0r" type="number" step="0.1" value="0" /></label>
+              <label>z₀ imag <input id="z0i" type="number" step="0.1" value="0" /></label>
               <button onclick="resetMandel()">Reset</button>
               <button onclick="renderMandel()">Render</button>
             </div>
             <div class="mandel-json">
-              <textarea id="params-json" placeholder='{"cx":-0.75,"cy":0.1,"scale":0.003,"maxIter":800}'></textarea>
+              <textarea id="params-json" placeholder='{"cx":-0.75,"cy":0.1,"scale":0.003,"maxIter":800,"power":2,"escapeRadius":2,"z0r":0,"z0i":0}'></textarea>
               <button onclick="applyJsonParams()">Apply JSON</button>
               <button onclick="copyCurrentParams()">Copy Current Params</button>
             </div>
@@ -157,12 +165,22 @@
 
   <!-- JavaScript logic -->
   <script>
-    function scrollToId(id){
-      const el = document.getElementById(id);
-      if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+    /* ---------- Tabs ---------- */
+    function openTab(which){
+      const plots = document.getElementById('tab-plots');
+      const mandel = document.getElementById('tab-mandel');
+      const bPlots = document.getElementById('btn-plots');
+      const bMandel = document.getElementById('btn-mandel');
+      if(which === 'plots'){
+        plots.classList.add('active'); mandel.classList.remove('active');
+        bPlots.classList.add('active'); bMandel.classList.remove('active');
+      }else{
+        mandel.classList.add('active'); plots.classList.remove('active');
+        bMandel.classList.add('active'); bPlots.classList.remove('active');
+      }
     }
 
-    // Plotly 2D: sin & cos
+    /* ---------- Plotly (2D + 3D) ---------- */
     function draw2D(){
       const N = 400, xs = [], ys = [], yc = [];
       for(let i=0;i<N;i++){
@@ -177,7 +195,6 @@
       Plotly.newPlot('js-plot-2d', data, layout, {responsive:true});
     }
 
-    // Plotly 3D: z = sin(x)·cos(y)
     function draw3D(){
       const x = [], y = [];
       for(let i=0;i<=60;i++){ x.push(-3 + 6*i/60); y.push(-3 + 6*i/60); }
@@ -195,41 +212,33 @@
       Plotly.newPlot('js-plot-3d', data, layout, {responsive:true});
     }
 
-    // -------- Mandelbrot (Canvas) --------
+    /* ---------- Mandelbrot / Multibrot ---------- */
     const mandelCanvas = document.getElementById('mandel');
     const ctx = mandelCanvas.getContext('2d', { willReadFrequently: true });
 
-    // Resize canvas to container CSS size
     function fitCanvas() {
       const rect = mandelCanvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       mandelCanvas.width  = Math.max(1, Math.floor(rect.width * dpr));
       mandelCanvas.height = Math.max(1, Math.floor(rect.height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // align drawing with CSS pixels
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    // State
+    // Full parameter state
     let state = {
-      cx: -0.5,
-      cy:  0.0,
-      scale: 0.004,   // complex units per CSS pixel
-      maxIter: 500,
-      isPanning: false,
-      panStart: {x:0,y:0},
-      centerStart: {cx: -0.5, cy: 0.0}
+      cx: -0.5, cy: 0.0, scale: 0.004, maxIter: 500,
+      power: 2, escapeRadius: 2,
+      z0r: 0, z0i: 0,
+      isPanning:false, panStart:{x:0,y:0}, centerStart:{cx:-0.5, cy:0.0}
     };
 
-    // Public API: programmatic generation
+    // Public API
     function generateMandelbrot(newParams = {}){
-      // Allow both iter and maxIter keys
-      if ('iter' in newParams && !('maxIter' in newParams)) {
-        newParams.maxIter = newParams.iter;
-      }
+      if ('iter' in newParams && !('maxIter' in newParams)) newParams.maxIter = newParams.iter;
       Object.assign(state, newParams);
       stateToUi();
       renderMandelCore();
     }
-    // Expose API globally
     window.generateMandelbrot = generateMandelbrot;
 
     function uiToState(){
@@ -237,26 +246,33 @@
       state.cy = parseFloat(document.getElementById('cy').value);
       state.scale = parseFloat(document.getElementById('scale').value);
       state.maxIter = parseInt(document.getElementById('iter').value, 10);
+      state.power = parseFloat(document.getElementById('power').value);
+      state.escapeRadius = parseFloat(document.getElementById('escape').value);
+      state.z0r = parseFloat(document.getElementById('z0r').value);
+      state.z0i = parseFloat(document.getElementById('z0i').value);
     }
     function stateToUi(){
-      document.getElementById('cx').value = isFinite(state.cx) ? state.cx.toFixed(6) : "-0.500000";
-      document.getElementById('cy').value = isFinite(state.cy) ? state.cy.toFixed(6) : "0.000000";
-      document.getElementById('scale').value = isFinite(state.scale) ? state.scale.toFixed(6) : "0.004000";
-      document.getElementById('iter').value = isFinite(state.maxIter) ? state.maxIter : 500;
+      const F = (v,n=6)=> isFinite(v)? v.toFixed(n): '';
+      document.getElementById('cx').value = F(state.cx);
+      document.getElementById('cy').value = F(state.cy);
+      document.getElementById('scale').value = F(state.scale);
+      document.getElementById('iter').value = state.maxIter;
+      document.getElementById('power').value = state.power;
+      document.getElementById('escape').value = state.escapeRadius;
+      document.getElementById('z0r').value = state.z0r;
+      document.getElementById('z0i').value = state.z0i;
     }
 
     function resetMandel(){
-      state = { cx:-0.5, cy:0.0, scale:0.004, maxIter:500, isPanning:false, panStart:{x:0,y:0}, centerStart:{cx:-0.5, cy:0.0} };
+      state = { cx:-0.5, cy:0.0, scale:0.004, maxIter:500, power:2, escapeRadius:2, z0r:0, z0i:0,
+                isPanning:false, panStart:{x:0,y:0}, centerStart:{cx:-0.5, cy:0.0} };
       stateToUi();
       renderMandelCore();
     }
 
     function colorMap(t){
-      // t in [0,1] (smooth iteration ratio). Convert HSV->RGB quickly.
-      const h = 360 * t, s = 1, v = t < 1 ? 1 : 0; // black for interior
-      const c = v * s;
-      const x = c * (1 - Math.abs((h/60)%2 - 1));
-      const m = v - c;
+      const h = 360 * t, s = 1, v = t < 1 ? 1 : 0;
+      const c = v * s, x = c * (1 - Math.abs((h/60)%2 - 1)), m = v - c;
       let r=0,g=0,b=0;
       if(h < 60)       { r=c; g=x; b=0; }
       else if(h <120 ) { r=x; g=c; b=0; }
@@ -267,59 +283,67 @@
       return [Math.round((r+m)*255), Math.round((g+m)*255), Math.round((b+m)*255)];
     }
 
-    function renderMandel(){
-      // Manual trigger from buttons/inputs
-      uiToState();
-      renderMandelCore();
-    }
+    function renderMandel(){ uiToState(); renderMandelCore(); }
 
+    // Core renderer with general power & z0
     function renderMandelCore(){
       fitCanvas();
-      const w = mandelCanvas.width;
-      const h = mandelCanvas.height;
+      const w = mandelCanvas.width, h = mandelCanvas.height;
       const img = ctx.createImageData(w, h);
-
-      // scale is per CSS pixel; convert to device pixel (since width/height are device px)
       const dpr = window.devicePixelRatio || 1;
       const scalePerDevPx = state.scale / dpr;
 
       const cx = state.cx, cy = state.cy;
       const maxIter = state.maxIter;
-      const escape2 = 4;
+      const escape2 = state.escapeRadius * state.escapeRadius;
+      const p = state.power;
+      const z0r = state.z0r, z0i = state.z0i;
 
       let ptr = 0;
       for(let py=0; py<h; py++){
-        const y0 = cy + (py - h/2) * scalePerDevPx;
+        const yC = cy + (py - h/2) * scalePerDevPx;
         for(let px=0; px<w; px++){
-          const x0 = cx + (px - w/2) * scalePerDevPx;
-          let x = 0, y = 0, iter = 0;
-          let x2 = 0, y2 = 0;
-          while (x2 + y2 <= escape2 && iter < maxIter){
-            y = 2*x*y + y0;
-            x = x2 - y2 + x0;
-            x2 = x*x; y2 = y*y;
+          const xC = cx + (px - w/2) * scalePerDevPx;
+          // Initialize z0 and accumulate iterations
+          let xr = z0r, xi = z0i; // z = x + i y
+          let iter = 0;
+          // Precompute magnitude squared
+          let xr2 = xr*xr, xi2 = xi*xi;
+
+          while (xr2 + xi2 <= escape2 && iter < maxIter){
+            // z -> z^p + c  (use polar form for any real p)
+            const r = Math.sqrt(xr2 + xi2);
+            const theta = Math.atan2(xi, xr);
+            const rp = Math.pow(r, p);
+            const thetap = theta * p;
+
+            xr = rp * Math.cos(thetap) + xC;
+            xi = rp * Math.sin(thetap) + yC;
+
+            xr2 = xr*xr; xi2 = xi*xi;
             iter++;
           }
-          let r,g,b;
+
+          let r8,g8,b8;
           if (iter >= maxIter){
-            r=g=b=0; // interior black
+            r8=g8=b8=0;
           } else {
-            // Smooth iteration count
-            const zn = Math.sqrt(x2 + y2);
+            const zn = Math.sqrt(xr2 + xi2);
             const nu = Math.log(Math.log(zn)/Math.log(2)) / Math.log(2);
             const smooth = (iter + 1 - nu) / maxIter;
-            [r,g,b] = colorMap(Math.max(0, Math.min(1, smooth)));
+            const [r,g,b] = colorMap(Math.max(0, Math.min(1, smooth)));
+            r8=r; g8=g; b8=b;
           }
-          img.data[ptr++] = r;
-          img.data[ptr++] = g;
-          img.data[ptr++] = b;
+          img.data[ptr++] = r8;
+          img.data[ptr++] = g8;
+          img.data[ptr++] = b8;
           img.data[ptr++] = 255;
         }
       }
       ctx.putImageData(img, 0, 0);
     }
 
-    // JSON controls
+    /* JSON helpers */
     function applyJsonParams(){
       const t = document.getElementById('params-json').value.trim();
       if(!t) return;
@@ -331,13 +355,14 @@
       }
     }
     function copyCurrentParams(){
-      const obj = { cx: state.cx, cy: state.cy, scale: state.scale, maxIter: state.maxIter };
+      const obj = { cx: state.cx, cy: state.cy, scale: state.scale, maxIter: state.maxIter,
+                    power: state.power, escapeRadius: state.escapeRadius, z0r: state.z0r, z0i: state.z0i };
       const text = JSON.stringify(obj);
       navigator.clipboard?.writeText(text);
       document.getElementById('params-json').value = text;
     }
 
-    // URL query support: ?cx=...&cy=...&scale=...&iter=... (iter alias for maxIter)
+    /* URL query support: ?cx=...&cy=...&scale=...&iter=...&power=...&escape=...&z0r=...&z0i=... */
     function applyUrlParams(){
       const q = new URLSearchParams(window.location.search);
       const p = {};
@@ -345,10 +370,14 @@
       if(q.has('cy')) p.cy = parseFloat(q.get('cy'));
       if(q.has('scale')) p.scale = parseFloat(q.get('scale'));
       if(q.has('iter')) p.maxIter = parseInt(q.get('iter'), 10);
+      if(q.has('power')) p.power = parseFloat(q.get('power'));
+      if(q.has('escape')) p.escapeRadius = parseFloat(q.get('escape'));
+      if(q.has('z0r')) p.z0r = parseFloat(q.get('z0r'));
+      if(q.has('z0i')) p.z0i = parseFloat(q.get('z0i'));
       if(Object.keys(p).length) generateMandelbrot(p);
     }
 
-    // Zoom with wheel (zoom at cursor)
+    /* Interactions: zoom + pan */
     mandelCanvas.addEventListener('wheel', (e) => {
       e.preventDefault();
       const rect = mandelCanvas.getBoundingClientRect();
@@ -356,15 +385,13 @@
       const mx = (e.clientX - rect.left) * dpr;
       const my = (e.clientY - rect.top) * dpr;
 
-      // Convert to complex coords before zoom
       const scalePerDevPx = state.scale / dpr;
       const x0 = state.cx + (mx - mandelCanvas.width/2) * scalePerDevPx;
       const y0 = state.cy + (my - mandelCanvas.height/2) * scalePerDevPx;
 
-      const zoom = e.deltaY < 0 ? 0.8 : 1.25; // in/out
+      const zoom = e.deltaY < 0 ? 0.8 : 1.25;
       state.scale *= zoom;
 
-      // Keep cursor fixed by recentering
       const scalePerDevPxNew = state.scale / dpr;
       state.cx = x0 - (mx - mandelCanvas.width/2) * scalePerDevPxNew;
       state.cy = y0 - (my - mandelCanvas.height/2) * scalePerDevPxNew;
@@ -373,7 +400,6 @@
       renderMandelCore();
     }, { passive:false });
 
-    // Pan with drag
     mandelCanvas.addEventListener('mousedown', (e) => {
       state.isPanning = true;
       state.panStart = { x: e.clientX, y: e.clientY };
@@ -391,20 +417,19 @@
       renderMandelCore();
     });
 
-    // Resize handling
     window.addEventListener('resize', () => renderMandelCore());
 
-    // Initialize plots + Mandelbrot
+    /* Init */
     draw2D();
     draw3D();
     stateToUi();
     renderMandelCore();
     applyUrlParams();
 
-    // Re-render Mandelbrot when inputs change
-    ['cx','cy','scale','iter'].forEach(id => {
+    /* Re-render Mandelbrot when inputs change */
+    ['cx','cy','scale','iter','power','escape','z0r','z0i'].forEach(id => {
       document.getElementById(id).addEventListener('change', renderMandel);
-      document.getElementById(id).addEventListener('input', (e)=>{ if(e.target.id==='iter') renderMandel(); });
+      document.getElementById(id).addEventListener('input', (e)=>{ if(id==='iter') renderMandel(); });
     });
   </script>
 </body>
